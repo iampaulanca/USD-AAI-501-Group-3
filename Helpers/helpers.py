@@ -35,18 +35,27 @@ from sklearn.metrics import (
 
 def run_chi_square_test(df, cat_col, target_col="GradeClass"):
     """
-    Chi-Square EDA function for categorical vs categorical relationships.
-    Outputs a contingency table, chi-square results, and a stacked bar chart.
+    Chi-Square EDA function for:
+    - Categorical vs Categorical (e.g., Sports vs GradeClass)
+    
+    Performs:
+        - Contingency table
+        - Chi-square test of independence
+        - Stacked bar chart visualization
     """
 
     print("=" * 80)
     print(f"Chi-Square EDA: {cat_col} vs {target_col}")
     print("=" * 80)
 
-    # Contingency table
+    # --------------------------------------------------
+    # Build contingency (crosstab) table
+    # --------------------------------------------------
     table = pd.crosstab(df[cat_col], df[target_col])
-
-    # Chi-square test
+    
+    # --------------------------------------------------
+    # Run Chi-Square Test
+    # --------------------------------------------------
     chi2, p_value, dof, expected = chi2_contingency(table)
 
     print("\nChi-Square Test Results:")
@@ -59,40 +68,53 @@ def run_chi_square_test(df, cat_col, target_col="GradeClass"):
     else:
         print("Result: No significant association (fail to reject H₀).")
 
-    # Stacked bar plot
+    # --------------------------------------------------
+    # Stacked Bar Chart (best visual for categorical × categorical)
+    # --------------------------------------------------
     plt.figure(figsize=(7, 5))
     table.plot(kind="bar", stacked=True, colormap="Pastel1")
+
     plt.title(f"{cat_col} vs {target_col} (Stacked Bar Chart)")
     plt.xlabel(cat_col)
     plt.ylabel("Frequency")
     plt.xticks(rotation=0)
     plt.legend(title=target_col)
+
     plt.tight_layout()
     plt.show()
+
     print("\n")
 
+def chisquare_test(table):
+    stat, p_value, dof, expected = chi2_contingency(table, correction=False)
+    # Interpret p-value
+    alpha = 0.05
+    print("The p-value is {}".format(p_value))
+    if p_value <= alpha:
+        print(f'{bold}YES{normal} Relationship between variables')
+    else:
+        print(f'{bold}NO{normal} relationship between variables.')
 
-# ============================================================
-# Regression Evaluation
-# ============================================================
+def plot_feature_importances(df, title, palette="viridis", top_n=15):
+    """
+    Plots the top N feature importances from a dataframe with
+    columns ['Feature', 'Importance'].
+    Compatible with Seaborn 0.14+ (requires hue assignment).
+    """
 
-def evaluate_regression(y_true, y_pred, model_name):
-    mae = mean_absolute_error(y_true, y_pred)
-    mse = mean_squared_error(y_true, y_pred)
-    rmse = math.sqrt(mse)
-    r2 = r2_score(y_true, y_pred)
-
-    print(f"--- {model_name} ---")
-    print(f"MAE:  {mae:.4f}")
-    print(f"MSE:  {mse:.4f}")
-    print(f"RMSE: {rmse:.4f}")
-    print(f"R²:   {r2:.4f}")
-    print()
-
-
-# ============================================================
-# Classification Evaluation
-# ============================================================
+    plt.figure(figsize=(10, 6))
+    sns.barplot(
+        data=df.head(top_n),
+        x="Importance",
+        y="Feature",
+        hue="Feature",
+        palette=palette,
+        legend=False
+    )
+    plt.title(title)
+    plt.xlabel("Importance")
+    plt.ylabel("Feature")
+    plt.show()
 
 def evaluate_classifier(y_true, y_pred, model_name):
     acc = accuracy_score(y_true, y_pred)
@@ -110,17 +132,27 @@ def evaluate_classifier(y_true, y_pred, model_name):
     print(cm)
     print()
 
+def evaluate_regression(y_true, y_pred, model_name):
+    mae = mean_absolute_error(y_true, y_pred)
+    mse = mean_squared_error(y_true, y_pred)
+    rmse = math.sqrt(mse)
+    r2 = r2_score(y_true, y_pred)
 
-# ============================================================
-# EDA Tests (T-Test + ANOVA)
-# ============================================================
+    print(f"--- {model_name} ---")
+    print(f"MAE:  {mae:.4f}")
+    print(f"MSE:  {mse:.4f}")
+    print(f"RMSE: {rmse:.4f}")
+    print(f"R²:   {r2:.4f}")
+    print()
 
 def run_eda_test(df, category_col, numeric_col):
     """
     Unified EDA function for:
-      - Binary categorical → t-test
-      - Multi-category → ANOVA
-    Includes boxplot visualization.
+    - Binary categorical vars (t-test + boxplot)
+    - Multi-category vars (ANOVA + boxplot)
+
+    Plots:
+        Boxplot only (simple & professional)
     """
 
     groups = df[category_col].dropna().unique()
@@ -130,7 +162,9 @@ def run_eda_test(df, category_col, numeric_col):
     print(f"EDA Analysis: {numeric_col} by {category_col}")
     print("=" * 80)
 
-    # --- Binary Categorical: T-Test ---
+    # --------------------------------------------------
+    #  Binary Category → T-Test + Boxplot
+    # --------------------------------------------------
     if n_groups == 2:
         print("\nRunning Independent Samples T-Test...")
 
@@ -146,16 +180,19 @@ def run_eda_test(df, category_col, numeric_col):
         print(f"P-value: {p_value:.6f}")
 
         if p_value < 0.05:
-            print("Result: Significant difference (p < 0.05).")
+            print("Result: Significant difference between groups (p < 0.05).")
         else:
-            print("Result: No significant difference (p ≥ 0.05).")
+            print("Result: No significant difference between groups (p ≥ 0.05).")
 
+        # ----- Boxplot -----
         plt.figure(figsize=(7,5))
         sns.boxplot(data=df, x=category_col, y=numeric_col)
         plt.title(f"{numeric_col} by {category_col}")
         plt.show()
 
-    # --- Multi-Category: ANOVA ---
+    # --------------------------------------------------
+    #  Multi-Category → ANOVA + Boxplot
+    # --------------------------------------------------
     elif n_groups >= 3:
         print("\nRunning One-Way ANOVA...")
 
@@ -170,10 +207,11 @@ def run_eda_test(df, category_col, numeric_col):
         print(f"P-value: {p_value:.6f}")
 
         if p_value < 0.05:
-            print("Result: Significant differences (p < 0.05).")
+            print("Result: Significant differences among groups (p < 0.05).")
         else:
             print("Result: No significant differences (p ≥ 0.05).")
 
+        # ----- Boxplot -----
         plt.figure(figsize=(8,5))
         sns.boxplot(data=df, x=category_col, y=numeric_col)
         plt.title(f"{numeric_col} by {category_col}")
@@ -184,18 +222,13 @@ def run_eda_test(df, category_col, numeric_col):
 
     print("\n")
 
-
-# ============================================================
-# Histogram / Countplot Grid
-# ============================================================
-
 def plot_multiple_hists(df, columns, label_maps=None, column_descriptions=None,
                         ncols=3, figsize=(15, 8)):
     """
-    Plots histograms and countplots for multiple columns using subplots.
-    Applies label maps and descriptive titles automatically.
+    Creates subplots of histograms / countplots side-by-side
+    using label maps and descriptive titles.
+    Automatically respects the order of label_maps for categorical columns.
     """
-
     nrows = math.ceil(len(columns) / ncols)
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
     axes = axes.flatten()
@@ -205,28 +238,35 @@ def plot_multiple_hists(df, columns, label_maps=None, column_descriptions=None,
         col_data = df[col]
         desc = column_descriptions.get(col, col)
 
+        # Apply mapping if exists
         if label_maps and col in label_maps:
-            col_data = pd.to_numeric(col_data, errors="coerce").fillna(-1).astype(int)
+            # convert to int safely before mapping
+            col_data = pd.to_numeric(col_data, errors='coerce').fillna(-1).astype(int)
             data = col_data.map(label_maps[col])
             plot_type = "categorical"
-            order = [label_maps[col][k] for k in label_maps[col]]
+
+            # ✅ Use order from mapping keys
+            order = [label_maps[col][k] for k in label_maps[col].keys()]
         else:
             data = col_data
             plot_type = "numeric" if pd.api.types.is_numeric_dtype(col_data) else "categorical"
             order = sorted(data.dropna().unique()) if plot_type == "categorical" else None
 
+        # Plot
         if plot_type == "numeric":
             sns.histplot(data.dropna(), bins=10, kde=True,
-                         color="skyblue", edgecolor="black", ax=ax)
+                         color='skyblue', edgecolor='black', ax=ax)
+            ax.set_ylabel("Frequency")
         else:
-            sns.countplot(x=data, order=order, color="lightgreen", ax=ax)
+            sns.countplot(x=data, color='lightgreen', order=order, ax=ax)
+            ax.set_ylabel("Count")
 
-        ax.set_title(f"{col} — {desc}", fontsize=10)
         ax.set_xlabel(col)
+        ax.set_title(f"{col} — {desc}", fontsize=10)
 
-    # Hide unused subplots
+    # Hide any unused axes
     for j in range(i + 1, len(axes)):
-        axes[j].axis("off")
+        axes[j].axis('off')
 
     plt.tight_layout()
     plt.show()
