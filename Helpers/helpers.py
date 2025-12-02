@@ -42,17 +42,31 @@ def run_chi_square_test(df, cat_col, target_col="GradeClass"):
         - Contingency table
         - Chi-square test of independence
         - Stacked bar chart visualization
+      Uses letter grades (A–F) for readability, while keeping the
+      underlying GradeClass numeric for modeling.
     """
+
+    # Local mapping (does NOT alter the original dataset)
+    mapping = {
+        0.0: "A",
+        1.0: "B",
+        2.0: "C",
+        3.0: "D",
+        4.0: "F"
+    }
+
+    # Temporary mapped labels
+    temp_target = df[target_col].map(mapping)
 
     print("=" * 80)
     print(f"Chi-Square EDA: {cat_col} vs {target_col}")
     print("=" * 80)
 
     # --------------------------------------------------
-    # Build contingency (crosstab) table
+    # Build contingency table
     # --------------------------------------------------
-    table = pd.crosstab(df[cat_col], df[target_col])
-    
+    table = pd.crosstab(df[cat_col], temp_target)
+
     # --------------------------------------------------
     # Run Chi-Square Test
     # --------------------------------------------------
@@ -69,16 +83,20 @@ def run_chi_square_test(df, cat_col, target_col="GradeClass"):
         print("Result: No significant association (fail to reject H₀).")
 
     # --------------------------------------------------
-    # Stacked Bar Chart (best visual for categorical × categorical)
+    # Stacked Bar Chart
     # --------------------------------------------------
-    plt.figure(figsize=(7, 5))
-    table.plot(kind="bar", stacked=True, colormap="Pastel1")
+    table.plot(
+        kind="bar",
+        stacked=True,
+        colormap="Pastel1",
+        figsize=(7,5)
+    )
 
-    plt.title(f"{cat_col} vs {target_col} (Stacked Bar Chart)")
+    plt.title(f"{cat_col} vs GradeClass (Stacked Bar Chart)")
     plt.xlabel(cat_col)
     plt.ylabel("Frequency")
     plt.xticks(rotation=0)
-    plt.legend(title=target_col)
+    plt.legend(title="Letter Grade")
 
     plt.tight_layout()
     plt.show()
